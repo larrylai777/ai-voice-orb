@@ -4,7 +4,7 @@
 - [x] 提升聆聽狀態下的流體變形、環線擴散與頻譜律動。
 - [ ] 新增更具層次的閒置呼吸與啟動轉場，同時保留減少動態效果支援。
 - [x] 驗證桌面及手機版的視覺節奏、型別檢查與正式建置。
-- [ ] 更新 GitHub Repository 與 GitHub Pages 公開版本。
+- [x] 更新 GitHub Repository 與 GitHub Pages 公開版本。
 
 ## 極簡化調整
 
