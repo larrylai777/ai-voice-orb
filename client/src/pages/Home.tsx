@@ -3,14 +3,12 @@
  */
 import { useCallback, useEffect, useRef, useState } from "react";
 import type { PointerEvent } from "react";
-import { AudioLines, Mic, MicOff, ShieldCheck, Square, Volume2, Waves } from "lucide-react";
+import { Mic, MicOff, ShieldCheck, Square } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
 type ListeningStatus = "idle" | "requesting" | "listening" | "denied" | "unsupported" | "error";
 
 const heroAtmosphere = "https://files.manuscdn.com/user_upload_by_module/session_file/310419663030673421/yrpelpjQTlpUICVx.jpg";
-const signalDetail = "https://files.manuscdn.com/user_upload_by_module/session_file/310419663030673421/JbNUJcGRrFrmjHzY.jpg";
-const listeningDetail = "https://files.manuscdn.com/user_upload_by_module/session_file/310419663030673421/LCmlnVevhPJAyifC.jpg";
 const logo = "https://files.manuscdn.com/user_upload_by_module/session_file/310419663030673421/McmWvVAwuqqwqMsa.png";
 
 const statusContent: Record<ListeningStatus, { label: string; helper: string }> = {
@@ -49,14 +47,17 @@ export default function Home() {
   const sampleBufferRef = useRef<Uint8Array | null>(null);
   const animationRef = useRef<number | null>(null);
   const smoothedLevelRef = useRef(0);
+  const peakLevelRef = useRef(0);
   const lastUiUpdateRef = useRef(0);
 
-  const setStageLevel = useCallback((level: number) => {
+  const setStageLevel = useCallback((level: number, pulse = 0) => {
     const stage = stageRef.current;
     if (!stage) return;
 
     stage.style.setProperty("--level", level.toFixed(3));
     stage.style.setProperty("--glow", (0.24 + level * 0.76).toFixed(3));
+    stage.style.setProperty("--energy", Math.min(1, level * 1.32 + pulse * 0.26).toFixed(3));
+    stage.style.setProperty("--pulse", pulse.toFixed(3));
   }, []);
 
   const stopListening = useCallback(() => {
@@ -77,6 +78,7 @@ export default function Home() {
     }
 
     smoothedLevelRef.current = 0;
+    peakLevelRef.current = 0;
     setStageLevel(0);
     setInputLevel(0);
     setStatus("idle");
@@ -96,10 +98,13 @@ export default function Home() {
     }
 
     const rms = Math.sqrt(sum / sampleBuffer.length);
-    const targetLevel = Math.min(1, rms * 5.2);
-    const smoothedLevel = smoothedLevelRef.current * 0.8 + targetLevel * 0.2;
+    const targetLevel = Math.min(1, Math.pow(rms * 7.1, 0.74));
+    const smoothedLevel = smoothedLevelRef.current * 0.72 + targetLevel * 0.28;
+    const peakLevel = Math.max(targetLevel, peakLevelRef.current * 0.91);
+    const pulse = Math.min(1, targetLevel * 0.62 + peakLevel * 0.46);
     smoothedLevelRef.current = smoothedLevel;
-    setStageLevel(smoothedLevel);
+    peakLevelRef.current = peakLevel;
+    setStageLevel(smoothedLevel, pulse);
 
     const now = performance.now();
     if (now - lastUiUpdateRef.current > 110) {
@@ -200,19 +205,10 @@ export default function Home() {
             <strong>ORB</strong>
           </span>
         </a>
-        <div className="topbar-meta" aria-label="產品版本資訊">
-          <span>LOCAL SIGNAL</span>
-          <span className="meta-dot" />
-          <span>BETA 01</span>
-        </div>
       </header>
 
-      <main className="hero-shell" id="voice-orb">
-        <section className="command-column" aria-labelledby="page-title">
-          <p className="eyebrow"><Waves size={15} strokeWidth={1.8} /> VOICE-RESPONSIVE INTERFACE</p>
-          <h1 id="page-title">讓聲音，<br /><em>成為一道</em><br />可見的光。</h1>
-          <p className="intro-copy">一個即時回應你聲音的環境式介面。啟動後，僅以裝置端音量資料驅動光場，不會錄音或傳送內容。</p>
-
+      <main className="orb-minimal" id="voice-orb">
+        <section className="control-dock" aria-label="語音光球控制">
           <div className="control-panel" data-status={status}>
             <div className="control-head">
               <span className="pulse-indicator" aria-hidden="true" />
@@ -259,6 +255,9 @@ export default function Home() {
             <div className="orb-shadow" />
             <div className="orb-halo halo-one" />
             <div className="orb-halo halo-two" />
+            <div className="orb-ripple ripple-one" />
+            <div className="orb-ripple ripple-two" />
+            <div className="orb-ripple ripple-three" />
             <div className="orb-orbit orbit-a" />
             <div className="orb-orbit orbit-b" />
             <div className="orb-orbit orbit-c" />
@@ -278,33 +277,8 @@ export default function Home() {
           <div className="audio-bars" aria-hidden="true">
             {Array.from({ length: 15 }, (_, index) => <span key={index} style={{ "--i": index } as React.CSSProperties} />)}
           </div>
-          <div className="stage-note">
-            <AudioLines size={16} strokeWidth={1.5} />
-            <span>{isListening ? "LIVE INPUT" : "STANDBY"}</span>
-          </div>
-          <div className="level-rail" aria-hidden="true">
-            <span className="rail-label">INPUT</span>
-            <div className="rail-track"><i /></div>
-            <output>{String(inputLevel).padStart(2, "0")}</output>
-          </div>
         </section>
       </main>
-
-      <section className="signal-journal" aria-label="互動特性說明">
-        <article className="journal-copy">
-          <span className="journal-number">01 / EXPERIENCE</span>
-          <h2>不是錄音指示燈。<br />是一段看得見的回應。</h2>
-          <p>平滑處理後的輸入音量同時影響光球的體積、發光和環線幅度，在保留安靜節奏的前提下，即時回應每一次發聲。</p>
-        </article>
-        <article className="journal-visual signal-detail-card">
-          <img src={signalDetail} alt="極光青聲音訊號抽象視覺" />
-          <div><span>INPUT PATH</span><strong>ONLY HERE</strong></div>
-        </article>
-        <article className="journal-visual listening-detail-card">
-          <img src={listeningDetail} alt="液態玻璃聲波環線抽象視覺" />
-          <div><Volume2 size={18} /><span>EVERY SOUND / ONE LIGHT</span></div>
-        </article>
-      </section>
     </div>
   );
 }
